@@ -21,4 +21,9 @@ echo "$out" | grep -q "SessionStart: registered" || fail "expected SessionStart 
 echo "$out" | grep -q "UserPromptSubmit: registered" || fail "expected UserPromptSubmit registered, got: $out"
 echo "$out" | grep -q "Stop: registered" || fail "expected Stop registered, got: $out"
 
+# malformed settings.json must not break the exit-0 contract
+printf 'not json {{{' > "$HOME/.claude/settings.json"
+out=$(sh scripts/status.sh) || fail "status.sh must exit 0 on malformed settings.json"
+echo "$out" | grep -q "settings.json: unreadable or malformed" || fail "expected malformed diagnostic, got: $out"
+
 echo "test-status: OK"

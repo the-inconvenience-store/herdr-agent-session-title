@@ -17,18 +17,28 @@ if [ -f "$settings_path" ] && command -v python3 >/dev/null 2>&1; then
 import json
 import os
 
-settings = json.load(open(os.environ["SETTINGS_PATH"], encoding="utf-8"))
 marker = "herdr-claude-session-title.sh"
-for event in ["SessionStart", "UserPromptSubmit", "Stop"]:
-    count = sum(
-        1
-        for entry in settings.get("hooks", {}).get(event, [])
-        if isinstance(entry, dict)
-        for h in entry.get("hooks", [])
-        if isinstance(h, dict) and marker in str(h.get("command", ""))
-    )
-    status = "registered" if count == 1 else "{} entries".format(count)
-    print("{}: {}".format(event, status))
+try:
+    with open(os.environ["SETTINGS_PATH"], encoding="utf-8") as handle:
+        settings = json.load(handle)
+    hooks = settings.get("hooks", {}) if isinstance(settings, dict) else {}
+    if not isinstance(hooks, dict):
+        hooks = {}
+    for event in ["SessionStart", "UserPromptSubmit", "Stop"]:
+        entries = hooks.get(event, [])
+        if not isinstance(entries, list):
+            entries = []
+        count = sum(
+            1
+            for entry in entries
+            if isinstance(entry, dict) and isinstance(entry.get("hooks"), list)
+            for h in entry["hooks"]
+            if isinstance(h, dict) and marker in str(h.get("command", ""))
+        )
+        status = "registered" if count == 1 else "{} entries".format(count)
+        print("{}: {}".format(event, status))
+except Exception:
+    print("settings.json: unreadable or malformed")
 PY
 else
   echo "settings.json: not found or python3 missing"
