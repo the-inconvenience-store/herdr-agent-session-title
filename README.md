@@ -8,9 +8,11 @@ or the auto-generated summary) into the herdr pane metadata title.
 The `install` action registers a small hook script with Claude Code
 (`~/.claude/settings.json`, events: SessionStart, UserPromptSubmit, Stop).
 On each event the hook reads the session transcript, picks the latest
-`custom-title` record (your `/rename`), falls back to the auto summary in
-`sessions-index.json`, and reports it to the herdr server over the herdr
-socket as pane metadata (`pane.report_metadata`). The pane label is not
+`custom-title` record (your `/rename`), falls back to the latest `ai-title`
+record (Claude Code's auto-generated session name; legacy
+`sessions-index.json` summaries are a last resort), and reports it to the
+herdr server over the herdr socket as pane metadata
+(`pane.report_metadata`). The pane label is not
 touched; the title shows up in herdr's navigator/detail view.
 
 The hook is silent by design: outside herdr, or on any error, it exits 0

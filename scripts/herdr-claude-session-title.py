@@ -29,25 +29,34 @@ def sanitize(title):
     return cleaned[:MAX_TITLE_CHARS]
 
 
-def custom_title_from_transcript(transcript_path):
-    title = None
+def title_from_transcript(transcript_path):
+    # /rename writes {"type":"custom-title","customTitle":...}; Claude Code's
+    # auto-naming writes {"type":"ai-title","aiTitle":...}. A user-chosen name
+    # always beats the auto name, regardless of which record appears later.
+    custom_title = None
+    ai_title = None
     try:
         with open(transcript_path, encoding="utf-8", errors="replace") as handle:
             for line in handle:
-                if '"custom-title"' not in line:
+                if '"custom-title"' not in line and '"ai-title"' not in line:
                     continue
                 try:
                     record = json.loads(line)
                 except ValueError:
                     continue
-                if not isinstance(record, dict) or record.get("type") != "custom-title":
+                if not isinstance(record, dict):
                     continue
-                candidate = sanitize(record.get("customTitle"))
-                if candidate:
-                    title = candidate
+                if record.get("type") == "custom-title":
+                    candidate = sanitize(record.get("customTitle"))
+                    if candidate:
+                        custom_title = candidate
+                elif record.get("type") == "ai-title":
+                    candidate = sanitize(record.get("aiTitle"))
+                    if candidate:
+                        ai_title = candidate
     except OSError:
         return None
-    return title
+    return custom_title or ai_title
 
 
 def summary_from_index(transcript_path, session_id):
@@ -67,9 +76,11 @@ def summary_from_index(transcript_path, session_id):
 
 
 def extract_title(transcript_path, session_id):
-    title = custom_title_from_transcript(transcript_path)
+    title = title_from_transcript(transcript_path)
     if title:
         return title
+    # last resort: legacy index (current Claude Code no longer maintains it,
+    # but old sessions may still have a summary there)
     return summary_from_index(transcript_path, session_id)
 
 

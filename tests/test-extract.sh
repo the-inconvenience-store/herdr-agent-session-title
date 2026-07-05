@@ -24,4 +24,10 @@ fi
 title=$(python3 "$py" extract "$fx/transcript-control-chars.jsonl" "sid-6")
 [ "$title" = "bad title here" ] || fail "expected control chars collapsed to spaces, got: $title"
 
+title=$(python3 "$py" extract "$fx/transcript-ai-title.jsonl" "sid-7")
+[ "$title" = "auto generated name v2" ] || fail "expected last ai-title as fallback, got: $title"
+
+title=$(python3 "$py" extract "$fx/transcript-ai-and-custom.jsonl" "sid-8")
+[ "$title" = "user-chosen-name" ] || fail "expected custom-title to beat later ai-title, got: $title"
+
 echo "test-extract: OK"
