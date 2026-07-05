@@ -7,7 +7,10 @@ Modes:
 """
 import json
 import os
+import random
+import socket
 import sys
+import time
 
 SOURCE = "plugin:claude-session-title"
 MAX_TITLE_CHARS = 120
@@ -67,6 +70,55 @@ def extract_title(transcript_path, session_id):
     return summary_from_index(transcript_path, session_id)
 
 
+def report(pane_id, socket_path, title):
+    request = {
+        "id": "{}:{}:{:06d}".format(SOURCE, int(time.time() * 1000), random.randrange(1_000_000)),
+        "method": "pane.report_metadata",
+        "params": {
+            "pane_id": pane_id,
+            "source": SOURCE,
+            "agent": "claude",
+            "title": title,
+            "seq": time.time_ns(),
+        },
+    }
+    client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    client.settimeout(0.5)
+    try:
+        client.connect(socket_path)
+        client.sendall((json.dumps(request) + "\n").encode())
+        try:
+            client.recv(4096)
+        except OSError:
+            pass
+    finally:
+        client.close()
+
+
+def hook_mode():
+    pane_id = os.environ.get("HERDR_PANE_ID")
+    socket_path = os.environ.get("HERDR_SOCKET_PATH")
+    if not pane_id or not socket_path:
+        return
+    try:
+        hook_input = json.load(sys.stdin)
+    except ValueError:
+        return
+    if not isinstance(hook_input, dict):
+        return
+    if hook_input.get("agent_id"):
+        # subagent event: its transcript does not represent the main session
+        return
+    session_id = hook_input.get("session_id")
+    transcript_path = hook_input.get("transcript_path")
+    if not isinstance(session_id, str) or not isinstance(transcript_path, str):
+        return
+    title = extract_title(transcript_path, session_id)
+    if not title:
+        return
+    report(pane_id, socket_path, title)
+
+
 def main():
     args = sys.argv[1:]
     if args[:1] == ["extract"] and len(args) == 3:
@@ -75,6 +127,11 @@ def main():
             return 1
         print(title)
         return 0
+    try:
+        hook_mode()
+    except Exception:
+        # a hook must never disturb Claude Code
+        pass
     return 0
 
 
