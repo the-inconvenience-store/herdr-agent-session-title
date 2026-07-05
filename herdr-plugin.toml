@@ -1,0 +1,24 @@
+id = "bcihanc.claude-session-title"
+name = "Claude Session Title"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "Reports the Claude Code session title (/rename or auto summary) as the herdr pane metadata title"
+platforms = ["linux", "macos"]
+
+[[actions]]
+id = "install"
+title = "Install Claude Code hook"
+contexts = ["workspace"]
+command = ["sh", "scripts/install.sh"]
+
+[[actions]]
+id = "uninstall"
+title = "Uninstall Claude Code hook"
+contexts = ["workspace"]
+command = ["sh", "scripts/uninstall.sh"]
+
+[[actions]]
+id = "status"
+title = "Show hook installation status"
+contexts = ["workspace"]
+command = ["sh", "scripts/status.sh"]
