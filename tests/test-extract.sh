@@ -21,4 +21,7 @@ if python3 "$py" extract "$fx/missing.jsonl" "sid-4" >/dev/null 2>&1; then
   fail "expected nonzero exit when transcript missing and session not in index"
 fi
 
+title=$(python3 "$py" extract "$fx/transcript-control-chars.jsonl" "sid-6")
+[ "$title" = "bad title here" ] || fail "expected control chars collapsed to spaces, got: $title"
+
 echo "test-extract: OK"

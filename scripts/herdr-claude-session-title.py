@@ -19,7 +19,10 @@ MAX_TITLE_CHARS = 120
 def sanitize(title):
     if not isinstance(title, str):
         return None
-    cleaned = "".join(ch if ch >= " " else " " for ch in title)
+    cleaned = "".join(
+        " " if (ch < " " or ch == "\x7f" or "\x80" <= ch <= "\x9f") else ch
+        for ch in title
+    )
     cleaned = " ".join(cleaned.split())
     if not cleaned:
         return None
