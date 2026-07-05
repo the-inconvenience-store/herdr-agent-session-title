@@ -20,6 +20,11 @@ marker = "herdr-claude-session-title.sh"
 with open(settings_path, encoding="utf-8") as handle:
     settings = json.load(handle)
 
+backup = settings_path + ".bak-claude-session-title"
+with open(backup, "w", encoding="utf-8") as handle:
+    json.dump(settings, handle, indent=2)
+    handle.write("\n")
+
 hooks = settings.get("hooks")
 if isinstance(hooks, dict):
     for event in list(hooks.keys()):

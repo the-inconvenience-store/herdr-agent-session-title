@@ -34,9 +34,15 @@ if os.path.exists(settings_path):
         json.dump(settings, handle, indent=2)
         handle.write("\n")
 
+if not isinstance(settings, dict):
+    raise SystemExit("error: settings.json root is not a JSON object; refusing to modify")
 hooks = settings.setdefault("hooks", {})
+if not isinstance(hooks, dict):
+    raise SystemExit("error: settings.json 'hooks' is not a JSON object; refusing to modify")
 for event in events:
     entries = hooks.setdefault(event, [])
+    if not isinstance(entries, list):
+        raise SystemExit("error: settings.json 'hooks.{}' is not a list; refusing to modify".format(event))
     kept = []
     for entry in entries:
         if isinstance(entry, dict) and isinstance(entry.get("hooks"), list):

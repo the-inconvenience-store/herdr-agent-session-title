@@ -64,4 +64,26 @@ PY
 [ ! -e "$HOME/.claude/hooks/herdr-claude-session-title.sh" ] || fail "hook sh copy not removed"
 [ ! -e "$HOME/.claude/hooks/herdr-claude-session-title.py" ] || fail "hook py copy not removed"
 
+[ -f "$HOME/.claude/settings.json.bak-claude-session-title" ] || fail "backup missing after uninstall"
+
+# malformed settings.json: install must fail loud and leave the file untouched
+malformed_dir=$(mktemp -d)
+cat > "$malformed_dir/settings.json" <<'JSON'
+{
+  "hooks": {
+    "Stop": "not-a-list"
+  }
+}
+JSON
+cp "$malformed_dir/settings.json" "$malformed_dir/settings.json.orig"
+export HOME="$malformed_dir"
+mkdir -p "$HOME/.claude"
+mv "$malformed_dir/settings.json" "$HOME/.claude/settings.json"
+if sh scripts/install.sh >/dev/null 2>&1; then
+  fail "install must fail on malformed settings"
+fi
+cmp "$HOME/.claude/settings.json" "$malformed_dir/settings.json.orig" || fail "malformed settings.json was modified"
+rm -rf "$malformed_dir"
+export HOME="$tmp"
+
 echo "test-install: OK"
