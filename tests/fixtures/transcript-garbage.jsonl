@@ -1,0 +1,4 @@
+this line is not json at all {{{
+{"type":"custom-title","customTitle":"","sessionId":"sid-3"}
+{"type":"custom-title" BROKEN JSON "customTitle":"nope"}
+{"type":"custom-title","customTitle":"valid-after-garbage","sessionId":"sid-3"}

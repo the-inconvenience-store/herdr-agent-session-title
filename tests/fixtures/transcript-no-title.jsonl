@@ -1,0 +1,2 @@
+{"parentUuid":null,"isSidechain":false,"type":"user","message":{"role":"user","content":"hello"},"sessionId":"sid-2"}
+{"type":"assistant","message":{"role":"assistant","content":"hi"},"sessionId":"sid-2"}
