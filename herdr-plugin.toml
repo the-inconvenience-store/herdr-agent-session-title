@@ -1,25 +1,25 @@
 id = "bcihanc.claude-session-title"
 name = "Agent Session Title"
-version = "0.2.0"
+version = "0.3.0"
 min_herdr_version = "0.7.0"
 description = "Reports Claude Code and Codex session titles as herdr pane metadata"
 platforms = ["linux", "macos"]
 
 [[actions]]
 id = "install"
-title = "Install Claude Code hook"
+title = "Install Claude Code status-line integration"
 contexts = ["workspace"]
 command = ["sh", "scripts/install.sh"]
 
 [[actions]]
 id = "uninstall"
-title = "Uninstall Claude Code hook"
+title = "Uninstall Claude Code status-line integration"
 contexts = ["workspace"]
 command = ["sh", "scripts/uninstall.sh"]
 
 [[actions]]
 id = "status"
-title = "Show hook installation status"
+title = "Show Claude Code integration status"
 contexts = ["workspace"]
 command = ["sh", "scripts/status.sh"]
 

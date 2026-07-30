@@ -2,18 +2,20 @@
 """Reports the Claude Code session title to herdr as pane metadata title.
 
 Modes:
-  (no args)                             hook mode: Claude Code hook input JSON on stdin
+  (no args)                             Claude status-line JSON on stdin
   extract <transcript_path> <sid>       print extracted title (test entrypoint)
 """
 import json
 import os
 import random
 import socket
+import subprocess
 import sys
 import time
 
 SOURCE = "plugin:claude-session-title"
 MAX_TITLE_CHARS = 120
+STATE_FILE = "herdr-session-title-statusline-state.json"
 
 
 def sanitize(title):
@@ -109,28 +111,68 @@ def report(pane_id, socket_path, title):
         client.close()
 
 
-def hook_mode():
-    pane_id = os.environ.get("HERDR_PANE_ID")
-    socket_path = os.environ.get("HERDR_SOCKET_PATH")
-    if not pane_id or not socket_path:
+def claude_home():
+    return os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+
+
+def previous_status_line():
+    state_path = os.path.join(claude_home(), STATE_FILE)
+    try:
+        with open(state_path, encoding="utf-8") as handle:
+            state = json.load(handle)
+    except (OSError, ValueError):
+        return None
+    previous = state.get("previous_status_line") if isinstance(state, dict) else None
+    if not isinstance(previous, dict):
+        return None
+    command = previous.get("command")
+    if not isinstance(command, str) or not command.strip():
+        return None
+    return command
+
+
+def chain_previous_status_line(raw_input):
+    command = previous_status_line()
+    if not command:
         return
     try:
-        hook_input = json.load(sys.stdin)
-    except ValueError:
-        return
-    if not isinstance(hook_input, dict):
-        return
-    if hook_input.get("agent_id"):
-        # subagent event: its transcript does not represent the main session
-        return
-    session_id = hook_input.get("session_id")
-    transcript_path = hook_input.get("transcript_path")
-    if not isinstance(session_id, str) or not isinstance(transcript_path, str):
-        return
-    title = extract_title(transcript_path, session_id)
-    if not title:
-        return
-    report(pane_id, socket_path, title)
+        completed = subprocess.run(
+            command,
+            input=raw_input,
+            text=True,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        sys.stdout.write(completed.stdout)
+        sys.stderr.write(completed.stderr)
+    except OSError:
+        pass
+
+
+def status_line_mode():
+    raw_input = sys.stdin.read()
+    try:
+        status_input = json.loads(raw_input)
+        if not isinstance(status_input, dict):
+            return
+        pane_id = os.environ.get("HERDR_PANE_ID")
+        socket_path = os.environ.get("HERDR_SOCKET_PATH")
+        session_id = status_input.get("session_id")
+        transcript_path = status_input.get("transcript_path")
+        if not all(
+            isinstance(value, str) and value
+            for value in (pane_id, socket_path, session_id)
+        ):
+            return
+        title = sanitize(status_input.get("session_name"))
+        if not title and isinstance(transcript_path, str):
+            title = extract_title(transcript_path, session_id)
+        if title:
+            report(pane_id, socket_path, title)
+    finally:
+        chain_previous_status_line(raw_input)
 
 
 def main():
@@ -142,9 +184,9 @@ def main():
         print(title)
         return 0
     try:
-        hook_mode()
+        status_line_mode()
     except Exception:
-        # a hook must never disturb Claude Code
+        # A status-line command must never disturb Claude Code.
         pass
     return 0
 

@@ -7,18 +7,20 @@ pane metadata title.
 
 ### Claude Code
 
-The `install` action registers a small hook script with Claude Code
-(`~/.claude/settings.json`, events: SessionStart, UserPromptSubmit, Stop).
-On each event the hook reads the session transcript, picks the latest
-`custom-title` record (your `/rename`), falls back to the latest `ai-title`
-record (Claude Code's auto-generated session name; legacy
-`sessions-index.json` summaries are a last resort), and reports it to the
-herdr server over the herdr socket as pane metadata
-(`pane.report_metadata`). The pane label is not
-touched; the title shows up in herdr's navigator/detail view.
+The `install` action registers a Claude Code `statusLine` command. It does not
+install Claude hooks. Claude passes the explicit `session_name` from `/rename`,
+plus the session ID and transcript path, to this command. When no explicit name
+is present, the command reads the latest `ai-title` from the transcript, with
+legacy `sessions-index.json` summaries as a last resort.
 
-The hook is silent by design: outside herdr, or on any error, it exits 0
-without output and never blocks Claude Code (0.5s socket timeout).
+If another Claude status-line command is already configured, the installer
+records it and the wrapper relays its output unchanged. Uninstall restores the
+original command without reverting unrelated changes to
+`~/.claude/settings.json`.
+
+The wrapper reports the selected title to the herdr server as pane metadata
+(`pane.report_metadata`). It is silent outside herdr and uses a 0.5-second
+socket timeout.
 
 ### Codex
 
@@ -35,7 +37,7 @@ changes to `~/.codex/config.toml`.
 ## Requirements
 
 - herdr >= 0.7.0 (Linux or macOS)
-- Claude Code with hooks support and/or Codex CLI
+- Claude Code with custom status-line support and/or Codex CLI
 - python3 on PATH
 
 ## Install Claude Code
@@ -43,8 +45,9 @@ changes to `~/.codex/config.toml`.
     herdr plugin install bcihanc/herdr-claude-session-title
     herdr plugin action invoke bcihanc.claude-session-title.install
 
-Restart any Claude Code session that was already running; hooks are read
-at session start.
+Restart any Claude Code session that was already running so it loads the
+updated `statusLine` setting. Claude Code requires workspace trust for
+status-line commands, and `disableAllHooks` also disables status lines.
 
 ## Install Codex
 
