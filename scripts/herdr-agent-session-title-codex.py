@@ -43,7 +43,27 @@ def database_paths(home):
     return paths
 
 
-def title_from_database(home, thread_id):
+def title_from_session_index(home, thread_id):
+    index_path = os.path.join(home, "session_index.jsonl")
+    title = None
+    try:
+        with open(index_path, encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                if thread_id not in line or '"thread_name"' not in line:
+                    continue
+                try:
+                    record = json.loads(line)
+                except ValueError:
+                    continue
+                if not isinstance(record, dict) or record.get("id") != thread_id:
+                    continue
+                title = sanitize(record.get("thread_name"))
+    except OSError:
+        return None
+    return title
+
+
+def titles_from_database(home, thread_id):
     for path in database_paths(home):
         try:
             connection = sqlite3.connect(
@@ -66,15 +86,19 @@ def title_from_database(home, thread_id):
                 )
                 row = connection.execute(query, (thread_id,)).fetchone()
                 if row:
-                    for value in row:
-                        title = sanitize(value)
-                        if title:
-                            return title
+                    values = dict(zip(wanted, row))
+                    explicit_name = sanitize(values.get("name"))
+                    fallback_title = None
+                    for column in ("title", "first_user_message"):
+                        fallback_title = sanitize(values.get(column))
+                        if fallback_title:
+                            break
+                    return explicit_name, fallback_title
             finally:
                 connection.close()
         except (OSError, sqlite3.Error):
             continue
-    return None
+    return None, None
 
 
 def title_from_notification(notification):
@@ -88,18 +112,15 @@ def title_from_notification(notification):
     return None
 
 
-def report(pane_id, socket_path, title):
+def rename_agent(pane_id, socket_path, title):
     request = {
         "id": "{}:{}:{:06d}".format(
             SOURCE, int(time.time() * 1000), random.randrange(1_000_000)
         ),
-        "method": "pane.report_metadata",
+        "method": "agent.rename",
         "params": {
-            "pane_id": pane_id,
-            "source": SOURCE,
-            "agent": "codex",
-            "title": title,
-            "seq": time.time_ns(),
+            "target": pane_id,
+            "name": title,
         },
     }
     payload = (json.dumps(request, separators=(",", ":")) + "\n").encode()
@@ -160,11 +181,19 @@ def handle(raw_notification):
             pane_id, socket_path, thread_id
         )):
             return
-        title = title_from_database(home, thread_id)
+        database_name, database_fallback = titles_from_database(home, thread_id)
+        # Current Codex versions persist /rename in SQLite `name`. Older
+        # sessions keep it in session_index.jsonl while SQLite `title` remains
+        # the first prompt. Prefer either explicit-name store over that title.
+        title = database_name
+        if not title:
+            title = title_from_session_index(home, thread_id)
+        if not title:
+            title = database_fallback
         if not title:
             title = title_from_notification(notification)
         if title:
-            report(pane_id, socket_path, title)
+            rename_agent(pane_id, socket_path, title)
     finally:
         chain_previous_notify(home, raw_notification)
 

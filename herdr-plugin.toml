@@ -2,7 +2,7 @@ id = "the-inconvenience-store.herdr-agent-session-title"
 name = "Agent Session Title"
 version = "0.6.0"
 min_herdr_version = "0.7.0"
-description = "Reports Claude Code and Codex session titles as herdr pane metadata"
+description = "Uses Claude Code and Codex session titles as herdr agent names"
 platforms = ["linux", "macos"]
 
 [[actions]]

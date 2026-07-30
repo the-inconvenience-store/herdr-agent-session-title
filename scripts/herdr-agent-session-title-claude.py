@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reports the Claude Code session title to herdr as pane metadata title.
+"""Use the Claude Code session title as the herdr agent name.
 
 Modes:
   (no args)                             Claude status-line JSON on stdin
@@ -86,16 +86,13 @@ def extract_title(transcript_path, session_id):
     return summary_from_index(transcript_path, session_id)
 
 
-def report(pane_id, socket_path, title):
+def rename_agent(pane_id, socket_path, title):
     request = {
         "id": "{}:{}:{:06d}".format(SOURCE, int(time.time() * 1000), random.randrange(1_000_000)),
-        "method": "pane.report_metadata",
+        "method": "agent.rename",
         "params": {
-            "pane_id": pane_id,
-            "source": SOURCE,
-            "agent": "claude",
-            "title": title,
-            "seq": time.time_ns(),
+            "target": pane_id,
+            "name": title,
         },
     }
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -170,7 +167,7 @@ def status_line_mode():
         if not title and isinstance(transcript_path, str):
             title = extract_title(transcript_path, session_id)
         if title:
-            report(pane_id, socket_path, title)
+            rename_agent(pane_id, socket_path, title)
     finally:
         chain_previous_status_line(raw_input)
 

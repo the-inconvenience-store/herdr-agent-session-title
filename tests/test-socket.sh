@@ -97,13 +97,9 @@ import json
 import sys
 
 request = json.loads(open(sys.argv[1], "rb").read().decode())
-assert request["method"] == "pane.report_metadata", request
+assert request["method"] == "agent.rename", request
 params = request["params"]
-assert params["pane_id"] == "%42", params
-assert params["source"] == "plugin:herdr-agent-session-title", params
-assert params["agent"] == "claude", params
-assert params["title"] == sys.argv[2], params
-assert isinstance(params["seq"], int) and params["seq"] > 0, params
+assert params == {"target": "%42", "name": sys.argv[2]}, params
 PY
 }
 

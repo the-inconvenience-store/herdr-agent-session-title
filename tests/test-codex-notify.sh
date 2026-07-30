@@ -84,11 +84,18 @@ connection.executemany(
     [
         ("named-thread", "Explicit rename", "Initial extracted title", "Initial prompt"),
         ("unnamed-thread", None, "Extracted first prompt", "Initial prompt"),
+        ("resumed-thread", None, "Stale first message", "Stale first message"),
     ],
 )
 connection.commit()
 connection.close()
 PY
+
+cat > "$CODEX_HOME/session_index.jsonl" <<'JSONL'
+{"id":"named-thread","thread_name":"Stale legacy name","updated_at":"2025-01-01T00:00:00Z"}
+{"id":"resumed-thread","thread_name":"Original custom name","updated_at":"2026-01-01T00:00:00Z"}
+{"id":"resumed-thread","thread_name":"Resumed custom name","updated_at":"2026-01-02T00:00:00Z"}
+JSONL
 
 run_socket_case() {
   thread_id=$1
@@ -140,15 +147,14 @@ import sys
 with open(sys.argv[1], encoding="utf-8") as handle:
     request = json.load(handle)
 params = request["params"]
-assert request["method"] == "pane.report_metadata", request
-assert params["source"] == "plugin:herdr-agent-session-title", params
-assert params["agent"] == "codex", params
-assert params["title"] == sys.argv[2], params
+assert request["method"] == "agent.rename", request
+assert params == {"target": "w1:p1", "name": sys.argv[2]}, params
 PY
 }
 
 run_socket_case named-thread "Explicit rename"
 run_socket_case unnamed-thread "Extracted first prompt"
+run_socket_case resumed-thread "Resumed custom name"
 echo "Codex title priority: OK"
 
 sh scripts/uninstall-codex.sh >/dev/null

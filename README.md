@@ -1,7 +1,7 @@
 # herdr-agent-session-title
 
-Herdr plugin: mirrors Claude Code and Codex session titles into the herdr
-pane metadata title.
+Herdr plugin: mirrors Claude Code and Codex session titles into the matching
+herdr agent name.
 
 ## How it works
 
@@ -18,17 +18,16 @@ records it and the wrapper relays its output unchanged. Uninstall restores the
 original command without reverting unrelated changes to
 `~/.claude/settings.json`.
 
-The wrapper reports the selected title to the herdr server as pane metadata
-(`pane.report_metadata`). It is silent outside herdr and uses a 0.5-second
-socket timeout.
+The wrapper sends the selected title to the herdr server with `agent.rename`.
+It is silent outside herdr and uses a 0.5-second socket timeout.
 
 ### Codex
 
 The `install-codex` action registers a Codex `notify` callback for
 `agent-turn-complete`. This is Codex's external notification interface, not
-its hooks system. The callback uses the notification's exact thread ID and
-reports the explicit `/rename` name when present, otherwise Codex's extracted
-title (normally the first prompt).
+its hooks system. The callback uses the notification's exact thread ID,
+prefers the persisted custom thread name used by `/rename`, and otherwise
+falls back to Codex's extracted title (normally the first prompt).
 
 If another Codex `notify` command is already configured, the installer records
 and chains it. Uninstall restores that command without reverting unrelated
@@ -62,7 +61,7 @@ therefore appears after the next completed turn.
 
 1. Inside herdr, open Claude Code or Codex in a pane.
 2. Run `/rename my-task-name`, then send any message.
-3. Open the herdr navigator: the pane detail shows `my-task-name`.
+3. Open the herdr navigator: the agent is named `my-task-name`.
 
 Check installation state any time:
 
