@@ -42,8 +42,8 @@ changes to `~/.codex/config.toml`.
 
 ## Install Claude Code
 
-    herdr plugin install bcihanc/herdr-claude-session-title
-    herdr plugin action invoke bcihanc.claude-session-title.install
+    herdr plugin install the-inconvenience-store/herdr-agent-session-title
+    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.install
 
 Restart any Claude Code session that was already running so it loads the
 updated `statusLine` setting. Claude Code requires workspace trust for
@@ -51,8 +51,8 @@ status-line commands, and `disableAllHooks` also disables status lines.
 
 ## Install Codex
 
-    herdr plugin install bcihanc/herdr-claude-session-title
-    herdr plugin action invoke bcihanc.claude-session-title.install-codex
+    herdr plugin install the-inconvenience-store/herdr-agent-session-title
+    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.install-codex
 
 Restart Codex sessions that were already running so they load the updated
 `notify` setting. The title is reported after each completed turn; a `/rename`
@@ -66,21 +66,21 @@ therefore appears after the next completed turn.
 
 Check installation state any time:
 
-    herdr plugin action invoke bcihanc.claude-session-title.status
+    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.status
 
 For Codex:
 
-    herdr plugin action invoke bcihanc.claude-session-title.status-codex
+    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.status-codex
 
 ## Uninstall
 
-    herdr plugin action invoke bcihanc.claude-session-title.uninstall
-    herdr plugin action invoke bcihanc.claude-session-title.uninstall-codex
-    herdr plugin uninstall bcihanc.claude-session-title
+    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.uninstall
+    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.uninstall-codex
+    herdr plugin uninstall the-inconvenience-store.herdr-agent-session-title
 
 ## Development
 
     sh tests/run.sh        # offline tests, no herdr/Claude needed
     herdr plugin link .    # register the working tree with herdr
 
-Troubleshooting: `herdr plugin log list --plugin bcihanc.claude-session-title`
+Troubleshooting: `herdr plugin log list --plugin the-inconvenience-store.herdr-agent-session-title`

@@ -15,7 +15,7 @@ import subprocess
 import sys
 import time
 
-SOURCE = "plugin:codex-session-title"
+SOURCE = "plugin:herdr-agent-session-title"
 MAX_TITLE_CHARS = 120
 STATE_FILE = "herdr-session-title-notify-state.json"
 

@@ -42,7 +42,7 @@ with open(sys.argv[1], encoding="utf-8") as handle:
 assert 'model = "gpt-test"' in config, config
 assert "animations = false" in config, config
 assert 'notify = ["python3", ' in config, config
-assert "herdr-codex-session-title.py" in config, config
+assert "herdr-agent-session-title-codex.py" in config, config
 
 with open(sys.argv[2], encoding="utf-8") as handle:
     state = json.load(handle)
@@ -50,15 +50,15 @@ assert state["previous_notify"] == ["sh", sys.argv[3]], state
 print("Codex install idempotency and preservation: OK")
 PY
 
-[ -x "$CODEX_HOME/herdr-codex-session-title.py" ] ||
+[ -x "$CODEX_HOME/herdr-agent-session-title-codex.py" ] ||
   fail "Codex callback copy missing"
-[ -f "$CODEX_HOME/config.toml.bak-codex-session-title" ] ||
+[ -f "$CODEX_HOME/config.toml.bak-herdr-agent-session-title" ] ||
   fail "Codex config backup missing"
 
 # The wrapper must forward every event to a pre-existing notifier, even when
 # the event is irrelevant to herdr.
 raw_notification='{"type":"unsupported","value":"preserved"}'
-python3 "$CODEX_HOME/herdr-codex-session-title.py" "$raw_notification"
+python3 "$CODEX_HOME/herdr-agent-session-title-codex.py" "$raw_notification"
 attempts=0
 while [ ! -f "$CHAIN_OUTPUT" ]; do
   attempts=$((attempts + 1))
@@ -129,7 +129,7 @@ PY
   done
 
   HERDR_ENV=1 HERDR_PANE_ID=w1:p1 HERDR_SOCKET_PATH="$socket_path" \
-    python3 scripts/herdr-codex-session-title.py \
+    python3 scripts/herdr-agent-session-title-codex.py \
     "{\"type\":\"agent-turn-complete\",\"thread-id\":\"$thread_id\",\"input-messages\":[\"Notification fallback\"]}"
   wait "$server_pid"
 
@@ -141,7 +141,7 @@ with open(sys.argv[1], encoding="utf-8") as handle:
     request = json.load(handle)
 params = request["params"]
 assert request["method"] == "pane.report_metadata", request
-assert params["source"] == "plugin:codex-session-title", params
+assert params["source"] == "plugin:herdr-agent-session-title", params
 assert params["agent"] == "codex", params
 assert params["title"] == sys.argv[2], params
 PY
@@ -165,9 +165,37 @@ assert "animations = false" in config, config
 print("Codex uninstall restoration: OK")
 PY
 
-[ ! -e "$CODEX_HOME/herdr-codex-session-title.py" ] ||
+[ ! -e "$CODEX_HOME/herdr-agent-session-title-codex.py" ] ||
   fail "Codex callback copy not removed"
 [ ! -e "$CODEX_HOME/herdr-session-title-notify-state.json" ] ||
   fail "Codex integration state not removed"
+
+# Upgrade an installation that still references the pre-rename callback file.
+cat > "$CODEX_HOME/config.toml" <<TOML
+notify = ["python3", "$CODEX_HOME/herdr-codex-session-title.py"]
+TOML
+python3 - \
+  "$CODEX_HOME/herdr-session-title-notify-state.json" \
+  "$existing_notifier" \
+  "$CODEX_HOME/herdr-codex-session-title.py" <<'PY'
+import json
+import sys
+
+state = {
+    "previous_notify": ["sh", sys.argv[2]],
+    "previous_assignment": 'notify = ["sh", "{}"]\n'.format(sys.argv[2]),
+    "callback": sys.argv[3],
+}
+with open(sys.argv[1], "w", encoding="utf-8") as handle:
+    json.dump(state, handle)
+PY
+touch "$CODEX_HOME/herdr-codex-session-title.py"
+sh scripts/install-codex.sh >/dev/null
+grep -q "herdr-agent-session-title-codex.py" "$CODEX_HOME/config.toml" ||
+  fail "legacy Codex notify command was not migrated"
+[ ! -e "$CODEX_HOME/herdr-codex-session-title.py" ] ||
+  fail "legacy Codex callback was not removed during migration"
+sh scripts/uninstall-codex.sh >/dev/null
+echo "legacy Codex callback migration: OK"
 
 echo "test-codex-notify: OK"

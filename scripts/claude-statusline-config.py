@@ -8,7 +8,7 @@ import shlex
 import sys
 import tempfile
 
-BACKUP_FILE = "settings.json.bak-claude-session-title"
+BACKUP_FILE = "settings.json.bak-herdr-agent-session-title"
 LEGACY_MARKER = "herdr-claude-session-title.sh"
 
 
@@ -140,16 +140,29 @@ def install(settings_path, state_path, callback_path):
     state = load_state(state_path)
 
     if state is not None:
-        if not is_ours(current, callback_path):
+        legacy_callback = os.path.join(
+            os.path.dirname(callback_path), "herdr-claude-session-title.py"
+        )
+        migrating = is_ours(current, legacy_callback)
+        if not is_ours(current, callback_path) and not migrating:
             raise SystemExit(
                 "error: integration state exists but Claude statusLine was changed; "
                 "run the Claude uninstall action before reinstalling"
             )
+        if migrating:
+            migrated = copy.deepcopy(current)
+            migrated["command"] = callback_command(callback_path)
+            settings["statusLine"] = migrated
+            state["callback"] = callback_path
         removed = remove_legacy_hooks(settings)
         if settings != original_settings:
             write_backup(settings_path, original_settings)
             atomic_json_write(settings_path, settings)
+        if migrating:
+            atomic_json_write(state_path, state)
         print("Claude status-line integration already installed")
+        if migrating:
+            print("migrated legacy callback filename")
         if removed:
             print("removed {} legacy hook registration(s)".format(removed))
         return

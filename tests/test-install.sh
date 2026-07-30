@@ -44,7 +44,7 @@ import sys
 settings = json.load(open(sys.argv[1]))
 status_line = settings["statusLine"]
 assert status_line["type"] == "command", status_line
-assert status_line["command"].endswith("herdr-claude-session-title.py"), status_line
+assert status_line["command"].endswith("herdr-agent-session-title-claude.py"), status_line
 assert status_line["padding"] == 2, status_line
 assert status_line["refreshInterval"] == 5, status_line
 assert settings["model"] == "opus", settings
@@ -69,13 +69,13 @@ assert state["previous_status_line"] == {
 print("status-line install, migration, and idempotency: OK")
 PY
 
-[ -x "$HOME/.claude/herdr-claude-session-title.py" ] ||
+[ -x "$HOME/.claude/herdr-agent-session-title-claude.py" ] ||
   fail "status-line callback copy missing"
 [ ! -e "$HOME/.claude/hooks/herdr-claude-session-title.sh" ] ||
   fail "legacy hook shell copy not removed"
 [ ! -e "$HOME/.claude/hooks/herdr-claude-session-title.py" ] ||
   fail "legacy hook Python copy not removed"
-[ -f "$HOME/.claude/settings.json.bak-claude-session-title" ] ||
+[ -f "$HOME/.claude/settings.json.bak-herdr-agent-session-title" ] ||
   fail "backup missing"
 
 sh scripts/uninstall.sh >/dev/null
@@ -102,10 +102,40 @@ assert "herdr-claude-session-title" not in json.dumps(settings), settings
 print("status-line uninstall restoration: OK")
 PY
 
-[ ! -e "$HOME/.claude/herdr-claude-session-title.py" ] ||
+[ ! -e "$HOME/.claude/herdr-agent-session-title-claude.py" ] ||
   fail "status-line callback not removed"
 [ ! -e "$HOME/.claude/herdr-session-title-statusline-state.json" ] ||
   fail "status-line integration state not removed"
+
+# Upgrade an installation that still references the pre-rename callback file.
+cat > "$HOME/.claude/settings.json" <<JSON
+{
+  "statusLine": {
+    "type": "command",
+    "command": "python3 $HOME/.claude/herdr-claude-session-title.py"
+  }
+}
+JSON
+cat > "$HOME/.claude/herdr-session-title-statusline-state.json" <<JSON
+{
+  "previous_status_line": null,
+  "callback": "$HOME/.claude/herdr-claude-session-title.py"
+}
+JSON
+touch "$HOME/.claude/herdr-claude-session-title.py"
+sh scripts/install.sh >/dev/null
+python3 - "$HOME/.claude/settings.json" <<'PY'
+import json
+import sys
+
+settings = json.load(open(sys.argv[1]))
+command = settings["statusLine"]["command"]
+assert command.endswith("herdr-agent-session-title-claude.py"), command
+PY
+[ ! -e "$HOME/.claude/herdr-claude-session-title.py" ] ||
+  fail "legacy Claude callback was not removed during migration"
+sh scripts/uninstall.sh >/dev/null
+echo "legacy Claude callback migration: OK"
 
 # Malformed JSON must fail loudly without modifying the settings file.
 malformed_dir=$(mktemp -d)

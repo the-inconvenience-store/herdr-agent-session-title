@@ -86,7 +86,7 @@ PY
   status_output=$(
     printf '%s' "$status_input" |
       HERDR_ENV=1 HERDR_PANE_ID='%42' HERDR_SOCKET_PATH="$sock" \
-      python3 scripts/herdr-claude-session-title.py
+      python3 scripts/herdr-agent-session-title-claude.py
   )
   [ "$status_output" = "existing:sid-status" ] ||
     fail "existing status-line output was not preserved: $status_output"
@@ -100,7 +100,7 @@ request = json.loads(open(sys.argv[1], "rb").read().decode())
 assert request["method"] == "pane.report_metadata", request
 params = request["params"]
 assert params["pane_id"] == "%42", params
-assert params["source"] == "plugin:claude-session-title", params
+assert params["source"] == "plugin:herdr-agent-session-title", params
 assert params["agent"] == "claude", params
 assert params["title"] == sys.argv[2], params
 assert isinstance(params["seq"], int) and params["seq"] > 0, params
@@ -124,7 +124,7 @@ echo "case 2 (transcript AI title fallback): OK"
 # Outside herdr, the wrapper still relays the existing status line.
 outside_output=$(
   printf '{"session_id":"outside"}' |
-    python3 scripts/herdr-claude-session-title.py
+    python3 scripts/herdr-agent-session-title-claude.py
 )
 [ "$outside_output" = "existing:outside" ] ||
   fail "wrapper did not relay the existing status line outside herdr"

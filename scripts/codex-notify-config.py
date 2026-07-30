@@ -9,7 +9,7 @@ import tempfile
 import ast
 
 STATE_FILE = "herdr-session-title-notify-state.json"
-BACKUP_FILE = "config.toml.bak-codex-session-title"
+BACKUP_FILE = "config.toml.bak-herdr-agent-session-title"
 KEY_RE = re.compile(r"^[ \t]*notify[ \t]*=")
 TABLE_RE = re.compile(r"^[ \t]*\[")
 
@@ -136,8 +136,25 @@ def install(config_path, state_path, callback_path):
     ours = ["python3", callback_path]
     existing_state = load_state(state_path)
     if existing_state is not None:
+        legacy_callback = os.path.join(
+            os.path.dirname(callback_path), "herdr-codex-session-title.py"
+        )
+        legacy = ["python3", legacy_callback]
         if current == ours:
             print("Codex notify integration already installed")
+            return
+        if current == legacy:
+            existing_state["callback"] = callback_path
+            atomic_write(state_path, json.dumps(existing_state, indent=2) + "\n")
+            span = root_notify_span(text)
+            if span is None:
+                raise SystemExit(
+                    "error: could not locate the legacy Codex notify assignment"
+                )
+            replacement = notify_line(ours)
+            updated = text[:span[0]] + replacement + text[span[1]:]
+            atomic_write(config_path, updated)
+            print("migrated legacy Codex callback filename")
             return
         raise SystemExit(
             "error: integration state exists but Codex notify was changed; "

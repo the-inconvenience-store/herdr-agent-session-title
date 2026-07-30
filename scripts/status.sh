@@ -4,7 +4,7 @@ set -eu
 
 plugin_root="${HERDR_PLUGIN_ROOT:?HERDR_PLUGIN_ROOT is not set}"
 claude_dir="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-callback="$claude_dir/herdr-claude-session-title.py"
+callback="$claude_dir/herdr-agent-session-title-claude.py"
 state="$claude_dir/herdr-session-title-statusline-state.json"
 settings="$claude_dir/settings.json"
 

@@ -13,7 +13,7 @@ import subprocess
 import sys
 import time
 
-SOURCE = "plugin:claude-session-title"
+SOURCE = "plugin:herdr-agent-session-title"
 MAX_TITLE_CHARS = 120
 STATE_FILE = "herdr-session-title-statusline-state.json"
 

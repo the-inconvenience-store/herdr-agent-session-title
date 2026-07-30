@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 cd "$(dirname "$0")/.."
-py="scripts/herdr-claude-session-title.py"
+py="scripts/herdr-agent-session-title-claude.py"
 fx="tests/fixtures"
 fail() { echo "FAIL: $1" >&2; exit 1; }
 
