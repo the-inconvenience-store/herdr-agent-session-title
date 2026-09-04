@@ -1,0 +1,12 @@
+{
+  "name": "@the-inconvenience-store/herdr-agent-session-title",
+  "version": "0.8.0",
+  "description": "Mirrors coding-agent session titles into Herdr agent names",
+  "type": "module",
+  "private": true,
+  "omp": {
+    "extensions": [
+      "./scripts/herdr-agent-session-title-omp.mjs"
+    ]
+  }
+}

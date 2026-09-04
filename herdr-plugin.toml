@@ -1,8 +1,8 @@
 id = "the-inconvenience-store.herdr-agent-session-title"
 name = "Agent Session Title"
-version = "0.6.0"
+version = "0.8.0"
 min_herdr_version = "0.7.0"
-description = "Uses Claude Code and Codex session titles as herdr agent names"
+description = "Uses Claude Code, Codex, and OMP session titles as herdr agent names"
 platforms = ["linux", "macos"]
 
 [[actions]]
@@ -40,3 +40,21 @@ id = "status-codex"
 title = "Show Codex integration status"
 contexts = ["workspace"]
 command = ["sh", "scripts/status-codex.sh"]
+
+[[actions]]
+id = "install-omp"
+title = "Install OMP extension integration"
+contexts = ["workspace"]
+command = ["sh", "scripts/install-omp.sh"]
+
+[[actions]]
+id = "uninstall-omp"
+title = "Uninstall OMP extension integration"
+contexts = ["workspace"]
+command = ["sh", "scripts/uninstall-omp.sh"]
+
+[[actions]]
+id = "status-omp"
+title = "Show OMP extension integration status"
+contexts = ["workspace"]
+command = ["sh", "scripts/status-omp.sh"]
