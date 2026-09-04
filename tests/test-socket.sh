@@ -99,7 +99,8 @@ import sys
 request = json.loads(open(sys.argv[1], "rb").read().decode())
 assert request["method"] == "agent.rename", request
 params = request["params"]
-assert params == {"target": "%42", "name": sys.argv[2]}, params
+expected = sys.argv[2].lower().replace(" ", "-")[:32].rstrip("-")
+assert params == {"target": "%42", "name": expected}, params
 PY
 }
 

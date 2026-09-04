@@ -18,8 +18,10 @@ records it and the wrapper relays its output unchanged. Uninstall restores the
 original command without reverting unrelated changes to
 `~/.claude/settings.json`.
 
-The wrapper sends the selected title to the herdr server with `agent.rename`.
-It is silent outside herdr and uses a 0.5-second socket timeout.
+The wrapper normalizes the selected title to herdr's agent-name format
+(lowercase letters, digits, and hyphens, up to 32 characters) and sends it
+with `agent.rename`. It renames the agent, not the pane. It is silent outside
+herdr and uses a 0.5-second socket timeout.
 
 ### Codex
 

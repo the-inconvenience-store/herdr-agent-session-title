@@ -9,6 +9,7 @@ import glob
 import json
 import os
 import random
+import re
 import socket
 import sqlite3
 import subprocess
@@ -31,6 +32,20 @@ def sanitize(title):
     if not cleaned:
         return None
     return cleaned[:MAX_TITLE_CHARS]
+
+
+def normalize_agent_name(title):
+    title = sanitize(title)
+    if not title:
+        return None
+    normalized = title.lower()
+    normalized = re.sub(r"[^a-z0-9_-]+", "-", normalized)
+    normalized = re.sub(r"[-_]+", "-", normalized).strip("-_")
+    normalized = normalized[:32].rstrip("-_")
+    if not normalized or not normalized[0].isalpha():
+        normalized = "session-" + normalized
+        normalized = normalized[:32].rstrip("-_")
+    return normalized or None
 
 
 def codex_home():
@@ -113,6 +128,9 @@ def title_from_notification(notification):
 
 
 def rename_agent(pane_id, socket_path, title):
+    name = normalize_agent_name(title)
+    if not name:
+        return
     request = {
         "id": "{}:{}:{:06d}".format(
             SOURCE, int(time.time() * 1000), random.randrange(1_000_000)
@@ -120,7 +138,7 @@ def rename_agent(pane_id, socket_path, title):
         "method": "agent.rename",
         "params": {
             "target": pane_id,
-            "name": title,
+            "name": name,
         },
     }
     payload = (json.dumps(request, separators=(",", ":")) + "\n").encode()
@@ -129,6 +147,16 @@ def rename_agent(pane_id, socket_path, title):
     try:
         client.connect(socket_path)
         client.sendall(payload)
+        # Herdr sends one JSON response per request. Keep the connection open
+        # long enough to receive it; closing immediately can make response
+        # delivery fail and causes the server to report the mutation as an
+        # errored API request.
+        response = b""
+        while not response.endswith(b"\n"):
+            chunk = client.recv(4096)
+            if not chunk:
+                break
+            response += chunk
     finally:
         client.close()
 

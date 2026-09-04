@@ -8,6 +8,7 @@ Modes:
 import json
 import os
 import random
+import re
 import socket
 import subprocess
 import sys
@@ -29,6 +30,20 @@ def sanitize(title):
     if not cleaned:
         return None
     return cleaned[:MAX_TITLE_CHARS]
+
+
+def normalize_agent_name(title):
+    title = sanitize(title)
+    if not title:
+        return None
+    normalized = title.lower()
+    normalized = re.sub(r"[^a-z0-9_-]+", "-", normalized)
+    normalized = re.sub(r"[-_]+", "-", normalized).strip("-_")
+    normalized = normalized[:32].rstrip("-_")
+    if not normalized or not normalized[0].isalpha():
+        normalized = "session-" + normalized
+        normalized = normalized[:32].rstrip("-_")
+    return normalized or None
 
 
 def title_from_transcript(transcript_path):
@@ -87,12 +102,15 @@ def extract_title(transcript_path, session_id):
 
 
 def rename_agent(pane_id, socket_path, title):
+    name = normalize_agent_name(title)
+    if not name:
+        return
     request = {
         "id": "{}:{}:{:06d}".format(SOURCE, int(time.time() * 1000), random.randrange(1_000_000)),
         "method": "agent.rename",
         "params": {
             "target": pane_id,
-            "name": title,
+            "name": name,
         },
     }
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)

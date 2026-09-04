@@ -121,10 +121,11 @@ connection, _ = server.accept()
 data = b""
 while not data.endswith(b"\n"):
     data += connection.recv(65536)
-connection.close()
-server.close()
 with open(output_path, "w", encoding="utf-8") as handle:
     json.dump(json.loads(data), handle)
+connection.sendall(b'{"id":"test","result":{"type":"agent_info"}}\n')
+connection.close()
+server.close()
 PY
   server_pid=$!
 
@@ -148,7 +149,8 @@ with open(sys.argv[1], encoding="utf-8") as handle:
     request = json.load(handle)
 params = request["params"]
 assert request["method"] == "agent.rename", request
-assert params == {"target": "w1:p1", "name": sys.argv[2]}, params
+expected = sys.argv[2].lower().replace(" ", "-")[:32].rstrip("-")
+assert params == {"target": "w1:p1", "name": expected}, params
 PY
 }
 
@@ -156,6 +158,26 @@ run_socket_case named-thread "Explicit rename"
 run_socket_case unnamed-thread "Extracted first prompt"
 run_socket_case resumed-thread "Resumed custom name"
 echo "Codex title priority: OK"
+
+python3 - "$CODEX_HOME/herdr-agent-session-title-codex.py" <<'PY'
+import importlib.util
+import sys
+
+spec = importlib.util.spec_from_file_location("callback", sys.argv[1])
+callback = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(callback)
+
+cases = {
+    "Whiteboard IMPPP": "whiteboard-imppp",
+    "  Fix: API / socket?!  ": "fix-api-socket",
+    "123 launch": "session-123-launch",
+    "A title that is much longer than thirty-two characters": "a-title-that-is-much-longer-than",
+}
+for value, expected in cases.items():
+    actual = callback.normalize_agent_name(value)
+    assert actual == expected, (value, actual, expected)
+print("Codex agent-name normalization: OK")
+PY
 
 sh scripts/uninstall-codex.sh >/dev/null
 
