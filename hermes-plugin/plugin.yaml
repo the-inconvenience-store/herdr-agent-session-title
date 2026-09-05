@@ -1,5 +1,5 @@
 name: herdr-agent-session-title
-version: "0.9.0"
+version: "0.10.0"
 description: Mirror Hermes session titles into Herdr agent names
 provides_hooks:
   - on_session_start

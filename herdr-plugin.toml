@@ -1,78 +1,27 @@
 id = "the-inconvenience-store.herdr-agent-session-title"
 name = "Agent Session Title"
-version = "0.9.0"
+version = "0.10.0"
 min_herdr_version = "0.7.0"
 description = "Uses Claude Code, Codex, OMP, and Hermes session titles as herdr agent names"
 platforms = ["linux", "macos"]
 
-[[actions]]
-id = "install"
-title = "Install Claude Code status-line integration"
-contexts = ["workspace"]
-command = ["sh", "scripts/install.sh"]
+[[build]]
+command = ["sh", "scripts/integrations.sh", "install"]
 
 [[actions]]
-id = "uninstall"
-title = "Uninstall Claude Code status-line integration"
+id = "install"
+title = "Install or repair detected agent integrations"
 contexts = ["workspace"]
-command = ["sh", "scripts/uninstall.sh"]
+command = ["sh", "scripts/integrations.sh", "install"]
 
 [[actions]]
 id = "status"
-title = "Show Claude Code integration status"
+title = "Show detected agent integration status"
 contexts = ["workspace"]
-command = ["sh", "scripts/status.sh"]
+command = ["sh", "scripts/integrations.sh", "status"]
 
 [[actions]]
-id = "install-codex"
-title = "Install Codex notification integration"
+id = "uninstall"
+title = "Uninstall detected agent integrations"
 contexts = ["workspace"]
-command = ["sh", "scripts/install-codex.sh"]
-
-[[actions]]
-id = "uninstall-codex"
-title = "Uninstall Codex notification integration"
-contexts = ["workspace"]
-command = ["sh", "scripts/uninstall-codex.sh"]
-
-[[actions]]
-id = "status-codex"
-title = "Show Codex integration status"
-contexts = ["workspace"]
-command = ["sh", "scripts/status-codex.sh"]
-
-[[actions]]
-id = "install-omp"
-title = "Install OMP extension integration"
-contexts = ["workspace"]
-command = ["sh", "scripts/install-omp.sh"]
-
-[[actions]]
-id = "uninstall-omp"
-title = "Uninstall OMP extension integration"
-contexts = ["workspace"]
-command = ["sh", "scripts/uninstall-omp.sh"]
-
-[[actions]]
-id = "status-omp"
-title = "Show OMP extension integration status"
-contexts = ["workspace"]
-command = ["sh", "scripts/status-omp.sh"]
-
-[[actions]]
-id = "install-hermes"
-title = "Install Hermes plugin integration"
-contexts = ["workspace"]
-command = ["sh", "scripts/install-hermes.sh"]
-
-[[actions]]
-id = "uninstall-hermes"
-title = "Uninstall Hermes plugin integration"
-contexts = ["workspace"]
-command = ["sh", "scripts/uninstall-hermes.sh"]
-
-[[actions]]
-id = "status-hermes"
-title = "Show Hermes plugin integration status"
-contexts = ["workspace"]
-command = ["sh", "scripts/status-hermes.sh"]
+command = ["sh", "scripts/integrations.sh", "uninstall"]

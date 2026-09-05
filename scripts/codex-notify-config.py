@@ -119,6 +119,71 @@ def validate_notify(value):
     return value
 
 
+def previous_notify_entry(command):
+    if not isinstance(command, list):
+        return None
+    for index, part in enumerate(command[:-1]):
+        if part != "--previous-notify":
+            continue
+        try:
+            nested = json.loads(command[index + 1])
+        except (TypeError, ValueError):
+            continue
+        if (
+            isinstance(nested, list)
+            and nested
+            and all(isinstance(item, str) and item for item in nested)
+        ):
+            return index, nested
+    return None
+
+
+def contains_notify(command, wanted):
+    if command == wanted:
+        return True
+    entry = previous_notify_entry(command)
+    return entry is not None and contains_notify(entry[1], wanted)
+
+
+def replace_notify_in_chain(command, wanted, replacement):
+    if command == wanted:
+        return list(replacement)
+    entry = previous_notify_entry(command)
+    if entry is None:
+        return command
+    index, nested = entry
+    if not contains_notify(nested, wanted):
+        return command
+    updated = list(command)
+    updated[index + 1] = json.dumps(
+        replace_notify_in_chain(nested, wanted, replacement),
+        separators=(",", ":"),
+    )
+    return updated
+
+
+def remove_notify_from_chain(command, wanted, replacement):
+    entry = previous_notify_entry(command)
+    if entry is None:
+        return command
+    index, nested = entry
+    if nested == wanted:
+        without_nested = command[:index] + command[index + 2:]
+        if replacement is None or replacement == without_nested:
+            return without_nested
+        updated = list(command)
+        updated[index + 1] = json.dumps(replacement, separators=(",", ":"))
+        return updated
+    if not contains_notify(nested, wanted):
+        return command
+    updated = list(command)
+    updated[index + 1] = json.dumps(
+        remove_notify_from_chain(nested, wanted, replacement),
+        separators=(",", ":"),
+    )
+    return updated
+
+
 def load_state(path):
     try:
         with open(path, encoding="utf-8") as handle:
@@ -140,10 +205,10 @@ def install(config_path, state_path, callback_path):
             os.path.dirname(callback_path), "herdr-codex-session-title.py"
         )
         legacy = ["python3", legacy_callback]
-        if current == ours:
+        if contains_notify(current, ours):
             print("Codex notify integration already installed")
             return
-        if current == legacy:
+        if contains_notify(current, legacy):
             existing_state["callback"] = callback_path
             atomic_write(state_path, json.dumps(existing_state, indent=2) + "\n")
             span = root_notify_span(text)
@@ -151,8 +216,8 @@ def install(config_path, state_path, callback_path):
                 raise SystemExit(
                     "error: could not locate the legacy Codex notify assignment"
                 )
-            replacement = notify_line(ours)
-            updated = text[:span[0]] + replacement + text[span[1]:]
+            migrated = replace_notify_in_chain(current, legacy, ours)
+            updated = text[:span[0]] + notify_line(migrated) + text[span[1]:]
             atomic_write(config_path, updated)
             print("migrated legacy Codex callback filename")
             return
@@ -194,7 +259,7 @@ def uninstall(config_path, state_path, callback_path):
     text = read_text(config_path)
     current = notify_from_text(text)
     ours = ["python3", callback_path]
-    if current != ours:
+    if not contains_notify(current, ours):
         print("Codex notify setting was changed; leaving config.toml untouched", file=sys.stderr)
         return False
 
@@ -202,8 +267,15 @@ def uninstall(config_path, state_path, callback_path):
     if span is None:
         print("Codex notify assignment is missing; leaving config.toml untouched", file=sys.stderr)
         return False
-    previous = state.get("previous_assignment")
-    replacement = previous if isinstance(previous, str) else ""
+    if current == ours:
+        previous = state.get("previous_assignment")
+        replacement = previous if isinstance(previous, str) else ""
+    else:
+        previous_notify = state.get("previous_notify")
+        if not isinstance(previous_notify, list):
+            previous_notify = None
+        restored = remove_notify_from_chain(current, ours, previous_notify)
+        replacement = notify_line(restored)
     updated = text[:span[0]] + replacement + text[span[1]:]
     atomic_write(config_path, updated)
     os.unlink(state_path)
@@ -222,11 +294,13 @@ def status(config_path, state_path, callback_path):
     print("callback script: {}".format(
         "installed" if os.path.isfile(callback_path) else "NOT installed"
     ))
-    print("Codex notify: {}".format("registered" if current == ours else "NOT registered"))
+    print("Codex notify: {}".format(
+        "registered" if contains_notify(current, ours) else "NOT registered"
+    ))
     print("previous notify preservation: {}".format(
         "recorded" if isinstance(state, dict) else "not recorded"
     ))
-    return 0 if current == ours and os.path.isfile(callback_path) else 1
+    return 0 if contains_notify(current, ours) and os.path.isfile(callback_path) else 1
 
 
 def main(argv):

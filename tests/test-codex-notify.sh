@@ -179,15 +179,60 @@ for value, expected in cases.items():
 print("Codex agent-name normalization: OK")
 PY
 
-sh scripts/uninstall-codex.sh >/dev/null
-
-python3 - "$CODEX_HOME/config.toml" "$existing_notifier" <<'PY'
+# A later notifier may wrap ours through --previous-notify. Repair must accept
+# that chain, and uninstall must remove only our nested callback.
+python3 - \
+  scripts/codex-notify-config.py \
+  "$CODEX_HOME/config.toml" <<'PY'
+import importlib.util
+import json
 import sys
 
-with open(sys.argv[1], encoding="utf-8") as handle:
-    config = handle.read()
-expected = 'notify = [\n  "sh",\n  "{}",\n]'.format(sys.argv[2])
-assert expected in config, config
+module_path, config_path = sys.argv[1:]
+spec = importlib.util.spec_from_file_location("codex_notify_config", module_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+text = module.read_text(config_path)
+current = module.notify_from_text(text)
+wrapper = [
+    "sky-notifier",
+    "turn-ended",
+    "--previous-notify",
+    json.dumps(current, separators=(",", ":")),
+]
+span = module.root_notify_span(text)
+module.atomic_write(
+    config_path,
+    text[:span[0]] + module.notify_line(wrapper) + text[span[1]:],
+)
+PY
+sh scripts/install-codex.sh >/dev/null
+sh scripts/status-codex.sh >/dev/null
+echo "Codex wrapped notifier repair: OK"
+
+sh scripts/uninstall-codex.sh >/dev/null
+
+python3 - \
+  scripts/codex-notify-config.py \
+  "$CODEX_HOME/config.toml" \
+  "$existing_notifier" <<'PY'
+import importlib.util
+import json
+import sys
+
+module_path, config_path, existing_notifier = sys.argv[1:]
+spec = importlib.util.spec_from_file_location("codex_notify_config", module_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+current = module.notify_from_text(module.read_text(config_path))
+expected = [
+    "sky-notifier",
+    "turn-ended",
+    "--previous-notify",
+    json.dumps(["sh", existing_notifier], separators=(",", ":")),
+]
+assert current == expected, current
+config = module.read_text(config_path)
 assert 'model = "gpt-test"' in config, config
 assert "animations = false" in config, config
 print("Codex uninstall restoration: OK")

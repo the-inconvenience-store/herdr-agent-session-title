@@ -32,8 +32,8 @@ JSON
 touch "$HOME/.claude/hooks/herdr-claude-session-title.sh"
 touch "$HOME/.claude/hooks/herdr-claude-session-title.py"
 
-sh scripts/install.sh >/dev/null
-sh scripts/install.sh >/dev/null
+sh scripts/install-claude.sh >/dev/null
+sh scripts/install-claude.sh >/dev/null
 
 python3 - \
   "$HOME/.claude/settings.json" \
@@ -78,7 +78,7 @@ PY
 [ -f "$HOME/.claude/settings.json.bak-herdr-agent-session-title" ] ||
   fail "backup missing"
 
-sh scripts/uninstall.sh >/dev/null
+sh scripts/uninstall-claude.sh >/dev/null
 
 python3 - "$HOME/.claude/settings.json" <<'PY'
 import json
@@ -123,7 +123,7 @@ cat > "$HOME/.claude/herdr-session-title-statusline-state.json" <<JSON
 }
 JSON
 touch "$HOME/.claude/herdr-claude-session-title.py"
-sh scripts/install.sh >/dev/null
+sh scripts/install-claude.sh >/dev/null
 python3 - "$HOME/.claude/settings.json" <<'PY'
 import json
 import sys
@@ -134,7 +134,7 @@ assert command.endswith("herdr-agent-session-title-claude.py"), command
 PY
 [ ! -e "$HOME/.claude/herdr-claude-session-title.py" ] ||
   fail "legacy Claude callback was not removed during migration"
-sh scripts/uninstall.sh >/dev/null
+sh scripts/uninstall-claude.sh >/dev/null
 echo "legacy Claude callback migration: OK"
 
 # Malformed JSON must fail loudly without modifying the settings file.
@@ -143,7 +143,7 @@ export HOME="$malformed_dir"
 mkdir -p "$HOME/.claude"
 printf 'not json {{{' > "$HOME/.claude/settings.json"
 cp "$HOME/.claude/settings.json" "$HOME/.claude/settings.json.orig"
-if sh scripts/install.sh >/dev/null 2>&1; then
+if sh scripts/install-claude.sh >/dev/null 2>&1; then
   fail "install must fail on malformed settings"
 fi
 cmp "$HOME/.claude/settings.json" "$HOME/.claude/settings.json.orig" ||

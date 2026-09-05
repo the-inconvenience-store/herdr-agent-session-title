@@ -25,7 +25,7 @@ herdr and uses a 0.5-second socket timeout.
 
 ### Codex
 
-The `install-codex` action registers a Codex `notify` callback for
+The Codex integration registers a `notify` callback for
 `agent-turn-complete`. This is Codex's external notification interface, not
 its hooks system. The callback uses the notification's exact thread ID,
 prefers the persisted custom thread name used by `/rename`, and otherwise
@@ -37,7 +37,8 @@ changes to `~/.codex/config.toml`.
 
 ### OMP
 
-The `install-omp` action links this package through OMP's plugin manager. Its
+The OMP integration installs a self-contained package through OMP's plugin
+manager. Its
 extension sends the current OMP session name with `agent.rename`. It observes
 `/rename` input and briefly waits for OMP to persist the explicit name. After a
 completed main-agent turn, it also waits briefly when OMP's generated title is
@@ -51,7 +52,7 @@ containing herdr pane. The extension is silent outside herdr and uses a
 
 ### Hermes
 
-The `install-hermes` action links and enables a profile-local Hermes plugin.
+The Hermes integration copies and enables a profile-local Hermes plugin.
 It reads persisted titles through Hermes's `SessionDB` and sends them with
 `agent.rename`. Existing titles are reported when a session starts or resumes.
 For new sessions, the plugin briefly watches after `pre_llm_call` to observe
@@ -75,41 +76,30 @@ format and uses a 0.5-second socket timeout.
   (tested with OMP 18.1.2 and Hermes Agent 0.20.6)
 - python3 on PATH
 
-## Install Claude Code
+## Install
 
     herdr plugin install the-inconvenience-store/herdr-agent-session-title
+
+During a GitHub plugin install, Herdr runs the manifest's reviewed build
+command. This plugin uses that lifecycle to detect `claude`, `codex`, `omp`,
+and `hermes` on `PATH` and install every available integration automatically.
+Local `herdr plugin link` intentionally does not run build commands.
+
+The same bulk action remains available for repairs and for agents installed
+after the Herdr plugin:
+
     herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.install
 
-Restart any Claude Code session that was already running so it loads the
-updated `statusLine` setting. Claude Code requires workspace trust for
-status-line commands, and `disableAllHooks` also disables status lines.
+Herdr plugin actions do not accept positional arguments. The action therefore
+repairs every detected supported agent. From a source checkout, developers can
+target a subset directly:
 
-## Install Codex
+    sh scripts/integrations.sh install codex omp claude
 
-    herdr plugin install the-inconvenience-store/herdr-agent-session-title
-    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.install-codex
-
-Restart Codex sessions that were already running so they load the updated
-`notify` setting. The title is reported after each completed turn; a `/rename`
-therefore appears after the next completed turn.
-
-## Install OMP
-
-    herdr plugin install the-inconvenience-store/herdr-agent-session-title
-    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.install-omp
-
-Restart OMP sessions that were already running so they load the extension. The
-integration is installed through OMP's user plugin registry, so it follows
-OMP's profile and XDG configuration handling.
-
-## Install Hermes
-
-    herdr plugin install the-inconvenience-store/herdr-agent-session-title
-    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.install-hermes
-
-Restart Hermes processes that were already running so they load the plugin.
-Hermes plugins are profile-local. The action uses `$HERMES_HOME` when set and
-otherwise installs into the default `~/.hermes` profile.
+Restart already-running agent sessions after installation. Claude Code requires
+workspace trust for status-line commands, and `disableAllHooks` also disables
+status lines. Hermes plugins are profile-local; `$HERMES_HOME` selects a
+non-default profile.
 
 ## Verify
 
@@ -122,29 +112,17 @@ otherwise installs into the default `~/.hermes` profile.
 4. Open the herdr navigator and confirm that the matching agent uses the
    session title.
 
-Check installation state any time:
+Check all detected or configured integration states:
 
     herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.status
 
-For Codex:
-
-    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.status-codex
-
-For OMP:
-
-    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.status-omp
-
-For Hermes:
-
-    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.status-hermes
-
 ## Uninstall
 
+Remove all detected or configured agent integrations before removing the Herdr
+plugin:
+
     herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.uninstall
-    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.uninstall-codex
-    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.uninstall-omp
-    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.uninstall-hermes
-    herdr plugin uninstall the-inconvenience-store.herdr-agent-session-title
+    herdr plugin uninstall the-inconvenience-store/herdr-agent-session-title
 
 ## Development
 

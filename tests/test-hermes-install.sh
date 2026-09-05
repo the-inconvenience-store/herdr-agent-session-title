@@ -30,7 +30,7 @@ case "$1:$2" in
   plugins:list)
     status=disabled
     [ ! -f "$state" ] || status=$(cat "$state")
-    if [ -L "$HERMES_HOME/plugins/herdr-agent-session-title" ]; then
+    if [ -f "$HERMES_HOME/plugins/herdr-agent-session-title/.herdr-integration" ]; then
       printf '[{"name":"unrelated","status":"enabled","source":"user"},{"name":"herdr-agent-session-title","status":"%s","source":"user"}]\n' "$status"
     else
       printf '[{"name":"unrelated","status":"enabled","source":"user"}]\n'
@@ -46,11 +46,14 @@ chmod +x "$tmp/bin/hermes"
 export PATH="$tmp/bin:$PATH"
 
 destination="$HERMES_HOME/plugins/herdr-agent-session-title"
+mkdir -p "$(dirname "$destination")"
+ln -s "$PWD/hermes-plugin" "$destination"
 
 sh scripts/install-hermes.sh >/dev/null
 sh scripts/install-hermes.sh >/dev/null
-[ -L "$destination" ] || fail "installer did not create a plugin link"
-[ "$(readlink "$destination")" = "$PWD/hermes-plugin" ] || fail "plugin link target is wrong"
+[ -d "$destination" ] && [ ! -L "$destination" ] || fail "installer did not create a self-contained plugin directory"
+[ -f "$destination/.herdr-integration" ] || fail "installed plugin has no ownership marker"
+[ -f "$destination/__init__.py" ] || fail "Hermes plugin runtime was not copied"
 
 status_output=$(sh scripts/status-hermes.sh)
 case "$status_output" in
@@ -80,7 +83,7 @@ hermes plugins enable herdr-agent-session-title --no-allow-tool-override >/dev/n
 
 sh scripts/uninstall-hermes.sh >/dev/null
 sh scripts/uninstall-hermes.sh >/dev/null
-[ ! -e "$destination" ] && [ ! -L "$destination" ] || fail "uninstaller left the plugin link"
+[ ! -e "$destination" ] && [ ! -L "$destination" ] || fail "uninstaller left the plugin directory"
 
 mkdir -p "$destination"
 printf 'foreign\n' > "$destination/owner"
@@ -96,6 +99,6 @@ rm -rf "$destination"
 if FAKE_HERMES_FAIL_ENABLE=1 sh scripts/install-hermes.sh >/dev/null 2>&1; then
   fail "installer succeeded when Hermes enable failed"
 fi
-[ ! -e "$destination" ] && [ ! -L "$destination" ] || fail "failed install left a plugin link"
+[ ! -e "$destination" ] && [ ! -L "$destination" ] || fail "failed install left a plugin directory"
 
 printf 'test-hermes-install: OK\n'

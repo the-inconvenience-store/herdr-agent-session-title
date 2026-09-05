@@ -17,6 +17,7 @@ export XDG_DATA_HOME="$tmp/xdg/data"
 export XDG_STATE_HOME="$tmp/xdg/state"
 export XDG_CACHE_HOME="$tmp/xdg/cache"
 export HERDR_PLUGIN_ROOT="$PWD"
+omp_source="$XDG_DATA_HOME/herdr-agent-session-title/omp-plugin"
 mkdir -p "$HOME" "$tmp/other-plugin"
 
 cat > "$tmp/other-plugin/package.json" <<'JSON'
@@ -36,6 +37,8 @@ JS
 omp plugin link "$tmp/other-plugin" >/dev/null
 sh scripts/install-omp.sh >/dev/null
 sh scripts/install-omp.sh >/dev/null
+[ -f "$omp_source/.herdr-integration" ] || fail "installer did not create the owned OMP package"
+[ -f "$omp_source/scripts/herdr-agent-session-title-omp.mjs" ] || fail "OMP extension was not copied"
 
 status_output=$(sh scripts/status-omp.sh)
 case "$status_output" in
@@ -45,7 +48,7 @@ esac
 
 
 plugin_json=$(omp plugin list --json)
-OMP_PLUGIN_LIST_JSON="$plugin_json" python3 - "$PWD" <<'PY'
+OMP_PLUGIN_LIST_JSON="$plugin_json" python3 - "$omp_source" <<'PY'
 import json
 import os
 import sys
@@ -65,6 +68,7 @@ omp plugin enable @the-inconvenience-store/herdr-agent-session-title >/dev/null
 
 sh scripts/uninstall-omp.sh >/dev/null
 sh scripts/uninstall-omp.sh >/dev/null
+[ ! -e "$omp_source" ] || fail "uninstaller left the owned OMP package"
 
 plugin_json=$(omp plugin list --json)
 OMP_PLUGIN_LIST_JSON="$plugin_json" python3 - <<'PY'
