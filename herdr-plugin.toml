@@ -1,8 +1,8 @@
 id = "the-inconvenience-store.herdr-agent-session-title"
 name = "Agent Session Title"
-version = "0.8.0"
+version = "0.9.0"
 min_herdr_version = "0.7.0"
-description = "Uses Claude Code, Codex, and OMP session titles as herdr agent names"
+description = "Uses Claude Code, Codex, OMP, and Hermes session titles as herdr agent names"
 platforms = ["linux", "macos"]
 
 [[actions]]
@@ -58,3 +58,21 @@ id = "status-omp"
 title = "Show OMP extension integration status"
 contexts = ["workspace"]
 command = ["sh", "scripts/status-omp.sh"]
+
+[[actions]]
+id = "install-hermes"
+title = "Install Hermes plugin integration"
+contexts = ["workspace"]
+command = ["sh", "scripts/install-hermes.sh"]
+
+[[actions]]
+id = "uninstall-hermes"
+title = "Uninstall Hermes plugin integration"
+contexts = ["workspace"]
+command = ["sh", "scripts/uninstall-hermes.sh"]
+
+[[actions]]
+id = "status-hermes"
+title = "Show Hermes plugin integration status"
+contexts = ["workspace"]
+command = ["sh", "scripts/status-hermes.sh"]

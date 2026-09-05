@@ -1,7 +1,7 @@
 # herdr-agent-session-title
 
-Herdr plugin: mirrors Claude Code, Codex, and OMP session titles into the
-matching herdr agent name.
+Herdr plugin: mirrors Claude Code, Codex, OMP, and Hermes session titles into
+the matching herdr agent name.
 
 ## How it works
 
@@ -49,11 +49,30 @@ or continuous polling. Task and scout subagent sessions do not rename the
 containing herdr pane. The extension is silent outside herdr and uses a
 0.5-second socket timeout.
 
+### Hermes
+
+The `install-hermes` action links and enables a profile-local Hermes plugin.
+It reads persisted titles through Hermes's `SessionDB` and sends them with
+`agent.rename`. Existing titles are reported when a session starts or resumes.
+For new sessions, the plugin briefly watches after `pre_llm_call` to observe
+Hermes's immediate derived title and its asynchronous LLM-generated upgrade.
+
+Hermes does not currently expose a public session-title-changed plugin hook.
+The integration therefore observes the documented `pre_command` hook for
+`/title`, then briefly waits for Hermes to persist an accepted title. It never
+patches Hermes internals or continuously polls the session database.
+Subagents and non-interactive platforms cannot rename the containing herdr
+pane.
+
+The plugin is silent outside herdr. It normalizes titles to herdr's agent-name
+format and uses a 0.5-second socket timeout.
+
 ## Requirements
 
 - herdr >= 0.7.0 (Linux or macOS)
-- Claude Code with custom status-line support, Codex CLI, and/or OMP with
-  `session_stop` extension support (tested with OMP 18.1.2)
+- Claude Code with custom status-line support, Codex CLI, OMP with
+  `session_stop` extension support, and/or Hermes Agent with plugin hooks
+  (tested with OMP 18.1.2 and Hermes Agent 0.20.6)
 - python3 on PATH
 
 ## Install Claude Code
@@ -83,15 +102,25 @@ Restart OMP sessions that were already running so they load the extension. The
 integration is installed through OMP's user plugin registry, so it follows
 OMP's profile and XDG configuration handling.
 
+## Install Hermes
+
+    herdr plugin install the-inconvenience-store/herdr-agent-session-title
+    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.install-hermes
+
+Restart Hermes processes that were already running so they load the plugin.
+Hermes plugins are profile-local. The action uses `$HERMES_HOME` when set and
+otherwise installs into the default `~/.hermes` profile.
+
 ## Verify
 
-1. Inside herdr, open Claude Code, Codex, or OMP in a pane.
-2. Run `/rename my-task-name`. In OMP, the herdr name updates directly; Claude
-   Code and Codex report it on their next callback.
-3. To verify OMP's generated title, start a fresh session, send a normal prompt,
-   and let the first turn complete.
-4. Open the herdr navigator and confirm that the matching agent uses the session
-   title.
+1. Inside herdr, open Claude Code, Codex, OMP, or Hermes in a pane.
+2. Run `/rename my-task-name` in Claude Code, Codex, or OMP. Run
+   `/title my-task-name` in Hermes. OMP and Hermes update the herdr name
+   directly; Claude Code and Codex report it on their next callback.
+3. To verify a generated title, start a fresh OMP or Hermes session, send a
+   normal prompt, and let the first turn complete.
+4. Open the herdr navigator and confirm that the matching agent uses the
+   session title.
 
 Check installation state any time:
 
@@ -105,11 +134,16 @@ For OMP:
 
     herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.status-omp
 
+For Hermes:
+
+    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.status-hermes
+
 ## Uninstall
 
     herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.uninstall
     herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.uninstall-codex
     herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.uninstall-omp
+    herdr plugin action invoke the-inconvenience-store.herdr-agent-session-title.uninstall-hermes
     herdr plugin uninstall the-inconvenience-store.herdr-agent-session-title
 
 ## Development
