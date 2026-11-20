@@ -33,6 +33,9 @@ case "$(basename "$0")" in
   install-hermes.sh) key=install:hermes ;;
   status-hermes.sh) key=status:hermes ;;
   uninstall-hermes.sh) key=uninstall:hermes ;;
+  install-cursor.sh) key=install:cursor ;;
+  status-cursor.sh) key=status:cursor ;;
+  uninstall-cursor.sh) key=uninstall:cursor ;;
   *) exit 2 ;;
 esac
 printf '%s\n' "$key" >> "${FAKE_INTEGRATION_LOG:?}"
@@ -43,7 +46,8 @@ for name in \
   install-claude.sh status-claude.sh uninstall-claude.sh \
   install-codex.sh status-codex.sh uninstall-codex.sh \
   install-omp.sh status-omp.sh uninstall-omp.sh \
-  install-hermes.sh status-hermes.sh uninstall-hermes.sh
+  install-hermes.sh status-hermes.sh uninstall-hermes.sh \
+  install-cursor.sh status-cursor.sh uninstall-cursor.sh
 do
   ln -s fake-action "$tmp/plugin/scripts/$name"
 done
@@ -66,10 +70,15 @@ assert_log status:claude status:codex
 
 cp "$tmp/bin/claude" "$tmp/bin/omp"
 cp "$tmp/bin/claude" "$tmp/bin/hermes"
-chmod +x "$tmp/bin/omp" "$tmp/bin/hermes"
+cp "$tmp/bin/claude" "$tmp/bin/cursor-agent"
+chmod +x "$tmp/bin/omp" "$tmp/bin/hermes" "$tmp/bin/cursor-agent"
 : > "$FAKE_INTEGRATION_LOG"
-sh scripts/integrations.sh install hermes omp codex codex >/dev/null
-assert_log install:hermes install:omp install:codex
+sh scripts/integrations.sh install >/dev/null
+assert_log install:claude install:codex install:omp install:hermes install:cursor
+
+: > "$FAKE_INTEGRATION_LOG"
+sh scripts/integrations.sh install hermes omp codex codex cursor >/dev/null
+assert_log install:hermes install:omp install:codex install:cursor
 
 : > "$FAKE_INTEGRATION_LOG"
 if sh scripts/integrations.sh install unknown >/dev/null 2>&1; then
@@ -86,6 +95,7 @@ fi
 assert_log install:claude install:codex install:hermes
 
 rm "$tmp/bin/claude" "$tmp/bin/codex" "$tmp/bin/omp" "$tmp/bin/hermes"
+rm "$tmp/bin/cursor-agent"
 mkdir -p "$HOME/.claude"
 printf 'callback\n' > "$HOME/.claude/herdr-agent-session-title-claude.py"
 : > "$FAKE_INTEGRATION_LOG"

@@ -1,7 +1,7 @@
 # herdr-agent-session-title
 
-Herdr plugin: mirrors Claude Code, Codex, OMP, and Hermes session titles into
-the matching herdr agent name.
+Herdr plugin: mirrors Claude Code, Codex, OMP, Hermes, and Cursor Agent
+session titles into the matching herdr agent name.
 
 ## How it works
 
@@ -68,12 +68,30 @@ pane.
 The plugin is silent outside herdr. It normalizes titles to herdr's agent-name
 format and uses a 0.5-second socket timeout.
 
+### Cursor Agent
+
+The Cursor integration registers `sessionStart` and `stop` hooks in
+`~/.cursor/hooks.json`. Cursor's hook input carries no title, so the callback
+reads the title Cursor persists for the session in its chat sidecar,
+`chats/<workspace hash>/<session id>/meta.json` under the Cursor config
+directory, and sends it with `agent.rename`. Existing titles are applied
+when a session starts or resumes, and the name follows Cursor's generated
+title and any later chat rename.
+
+Cursor generates titles asynchronously after the first turn. The `stop` hook
+renames immediately when the title is already persisted; otherwise it starts a
+detached 15-second follow-up that renames as soon as the title appears. It never
+blocks the hook. Subagent chats are ignored, and the placeholder name Cursor
+uses before a title exists is never applied. The callback is silent outside
+herdr and uses a 0.5-second socket timeout.
+
 ## Requirements
 
 - herdr >= 0.7.0 (Linux or macOS)
 - Claude Code with custom status-line support, Codex CLI, OMP with extension
-  context timers and runtime-mode support, and/or Hermes Agent with plugin hooks
-  (tested with OMP 18.12.6 and Hermes Agent 0.20.6)
+  context timers and runtime-mode support, Hermes Agent with plugin hooks,
+  and/or Cursor Agent CLI with user hooks (tested with OMP 18.12.6, Hermes
+  Agent 0.20.6, and Cursor Agent 2026.11.19)
 - python3 on PATH
 
 ## Install
@@ -82,7 +100,8 @@ format and uses a 0.5-second socket timeout.
 
 During a GitHub plugin install, Herdr runs the manifest's reviewed build
 command. This plugin uses that lifecycle to detect `claude`, `codex`, `omp`,
-and `hermes` on `PATH` and install every available integration automatically.
+`hermes`, and `cursor-agent` on `PATH` and install every available
+integration automatically.
 Local `herdr plugin link` intentionally does not run build commands.
 
 The same bulk action remains available for repairs and for agents installed
@@ -99,16 +118,17 @@ target a subset directly:
 Restart already-running agent sessions after installation. Claude Code requires
 workspace trust for status-line commands, and `disableAllHooks` also disables
 status lines. Hermes plugins are profile-local; `$HERMES_HOME` selects a
-non-default profile.
+non-default profile. Cursor Agent reads its hooks when a session starts.
 
 ## Verify
 
-1. Inside herdr, open Claude Code, Codex, OMP, or Hermes in a pane.
+1. Inside herdr, open Claude Code, Codex, OMP, Hermes, or Cursor Agent in a
+   pane.
 2. Run `/rename my-task-name` in Claude Code, Codex, or OMP. Run
    `/title my-task-name` in Hermes. OMP and Hermes update the herdr name
    directly; Claude Code and Codex report it on their next callback.
-3. To verify a generated title, start a fresh OMP or Hermes session, send a
-   normal prompt, and let the first turn complete.
+3. To verify a generated title, start a fresh OMP, Hermes, or Cursor Agent
+   session, send a normal prompt, and let the first turn complete.
 4. Open the herdr navigator and confirm that the matching agent uses the
    session title.
 

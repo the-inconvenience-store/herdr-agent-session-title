@@ -1,8 +1,8 @@
 id = "the-inconvenience-store.herdr-agent-session-title"
 name = "Agent Session Title"
-version = "0.10.1"
+version = "0.11.0"
 min_herdr_version = "0.7.0"
-description = "Uses Claude Code, Codex, OMP, and Hermes session titles as herdr agent names"
+description = "Uses Claude Code, Codex, OMP, Hermes, and Cursor Agent session titles as herdr agent names"
 platforms = ["linux", "macos"]
 
 [[build]]

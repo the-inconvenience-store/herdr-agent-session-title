@@ -3,7 +3,7 @@
 set -u
 
 usage() {
-  echo "usage: integrations.sh install|status|uninstall [claude|codex|omp|hermes ...]" >&2
+  echo "usage: integrations.sh install|status|uninstall [claude|codex|omp|hermes|cursor ...]" >&2
   exit 2
 }
 
@@ -25,6 +25,7 @@ agent_command() {
     codex) echo codex ;;
     omp) echo omp ;;
     hermes) echo hermes ;;
+    cursor) echo cursor-agent ;;
     *) return 1 ;;
   esac
 }
@@ -43,6 +44,9 @@ integration_script() {
     install:hermes) echo "$plugin_root/scripts/install-hermes.sh" ;;
     status:hermes) echo "$plugin_root/scripts/status-hermes.sh" ;;
     uninstall:hermes) echo "$plugin_root/scripts/uninstall-hermes.sh" ;;
+    install:cursor) echo "$plugin_root/scripts/install-cursor.sh" ;;
+    status:cursor) echo "$plugin_root/scripts/status-cursor.sh" ;;
+    uninstall:cursor) echo "$plugin_root/scripts/uninstall-cursor.sh" ;;
     *) return 1 ;;
   esac
 }
@@ -69,6 +73,9 @@ integration_present() {
       [ -e "$base/plugins/herdr-agent-session-title" ] ||
         [ -L "$base/plugins/herdr-agent-session-title" ]
       ;;
+    cursor)
+      [ -e "$HOME/.cursor/herdr-agent-session-title-cursor.py" ]
+      ;;
   esac
 }
 
@@ -90,7 +97,7 @@ if [ "$#" -gt 0 ]; then
     esac
   done
 else
-  for candidate in claude codex omp hermes; do
+  for candidate in claude codex omp hermes cursor; do
     if available "$candidate"; then
       selected="$selected $candidate"
     elif [ "$action" != install ] && integration_present "$candidate"; then
