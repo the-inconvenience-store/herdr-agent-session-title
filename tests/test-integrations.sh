@@ -13,6 +13,7 @@ assert_log() {
 
 python_bin=$(command -v python3)
 export HOME="$tmp/home"
+unset XDG_CONFIG_HOME
 export HERDR_PLUGIN_ROOT="$tmp/plugin"
 export FAKE_INTEGRATION_LOG="$tmp/integrations.log"
 mkdir -p "$HOME" "$tmp/plugin/scripts" "$tmp/bin"
@@ -33,6 +34,9 @@ case "$(basename "$0")" in
   install-hermes.sh) key=install:hermes ;;
   status-hermes.sh) key=status:hermes ;;
   uninstall-hermes.sh) key=uninstall:hermes ;;
+  install-opencode.sh) key=install:opencode ;;
+  status-opencode.sh) key=status:opencode ;;
+  uninstall-opencode.sh) key=uninstall:opencode ;;
   *) exit 2 ;;
 esac
 printf '%s\n' "$key" >> "${FAKE_INTEGRATION_LOG:?}"
@@ -43,7 +47,8 @@ for name in \
   install-claude.sh status-claude.sh uninstall-claude.sh \
   install-codex.sh status-codex.sh uninstall-codex.sh \
   install-omp.sh status-omp.sh uninstall-omp.sh \
-  install-hermes.sh status-hermes.sh uninstall-hermes.sh
+  install-hermes.sh status-hermes.sh uninstall-hermes.sh \
+  install-opencode.sh status-opencode.sh uninstall-opencode.sh
 do
   ln -s fake-action "$tmp/plugin/scripts/$name"
 done
@@ -71,6 +76,16 @@ chmod +x "$tmp/bin/omp" "$tmp/bin/hermes"
 sh scripts/integrations.sh install hermes omp codex codex >/dev/null
 assert_log install:hermes install:omp install:codex
 
+cp "$tmp/bin/claude" "$tmp/bin/opencode"
+chmod +x "$tmp/bin/opencode"
+: > "$FAKE_INTEGRATION_LOG"
+sh scripts/integrations.sh install >/dev/null
+assert_log install:claude install:codex install:omp install:hermes install:opencode
+
+: > "$FAKE_INTEGRATION_LOG"
+sh scripts/integrations.sh install opencode hermes opencode >/dev/null
+assert_log install:opencode install:hermes
+
 : > "$FAKE_INTEGRATION_LOG"
 if sh scripts/integrations.sh install unknown >/dev/null 2>&1; then
   fail "dispatcher accepted an unknown agent"
@@ -85,12 +100,27 @@ then
 fi
 assert_log install:claude install:codex install:hermes
 
-rm "$tmp/bin/claude" "$tmp/bin/codex" "$tmp/bin/omp" "$tmp/bin/hermes"
+rm "$tmp/bin/claude" "$tmp/bin/codex" "$tmp/bin/omp" "$tmp/bin/hermes" "$tmp/bin/opencode"
 mkdir -p "$HOME/.claude"
 printf 'callback\n' > "$HOME/.claude/herdr-agent-session-title-claude.py"
 : > "$FAKE_INTEGRATION_LOG"
 sh scripts/integrations.sh status >/dev/null
 assert_log status:claude
+
+# opencode is configured through files, so an installed integration is still
+# reported and removed after the CLI has left PATH, but installing needs it.
+mkdir -p "$HOME/.config/opencode/herdr-agent-session-title"
+: > "$FAKE_INTEGRATION_LOG"
+sh scripts/integrations.sh status >/dev/null
+assert_log status:claude status:opencode
+: > "$FAKE_INTEGRATION_LOG"
+sh scripts/integrations.sh uninstall >/dev/null
+assert_log uninstall:claude uninstall:opencode
+: > "$FAKE_INTEGRATION_LOG"
+if sh scripts/integrations.sh install opencode >/dev/null 2>&1; then
+  fail "dispatcher installed opencode without the opencode CLI"
+fi
+assert_log
 
 "$python_bin" - <<'PY'
 import pathlib

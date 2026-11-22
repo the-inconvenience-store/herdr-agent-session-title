@@ -1,7 +1,7 @@
 # herdr-agent-session-title
 
-Herdr plugin: mirrors Claude Code, Codex, OMP, and Hermes session titles into
-the matching herdr agent name.
+Herdr plugin: mirrors Claude Code, Codex, OMP, Hermes, and opencode session
+titles into the matching herdr agent name.
 
 ## How it works
 
@@ -68,12 +68,36 @@ pane.
 The plugin is silent outside herdr. It normalizes titles to herdr's agent-name
 format and uses a 0.5-second socket timeout.
 
+### opencode
+
+The opencode integration installs a small TUI plugin into opencode's global
+config directory (`${XDG_CONFIG_HOME:-~/.config}/opencode/herdr-agent-session-title/`)
+and lists it in `cli.json`. Plugins listed in `cli.json` run locally in the TUI
+process, which is the only process that knows which herdr pane it belongs to;
+the shared opencode server cannot attribute a session to a pane. The installer
+merges one entry into an existing `cli.json`, keeps every other setting and
+plugin, and backs the file up to `cli.json.bak-herdr-agent-session-title`.
+Uninstall removes only this plugin's entry and directory.
+
+The plugin reads the title of the session shown in the pane from opencode's
+session store and sends it with `agent.rename`. A new opencode session has no
+title until one is generated or set, so an untitled session leaves the herdr
+name unchanged. The plugin also reacts to opencode's `session.renamed` event,
+so `Rename session` (`ctrl+r`) lands immediately; the session shown in the pane
+is re-checked once per second, which picks up resumed sessions, switching
+sessions, and titles set by other means. When a subagent (child) session is
+shown, the title of its root session is used. Being a TUI plugin, it applies to
+the interactive TUI only. It is silent outside herdr, never throws into
+opencode, and uses the same 0.5-second socket timeout as the other
+integrations.
+
 ## Requirements
 
 - herdr >= 0.7.0 (Linux or macOS)
 - Claude Code with custom status-line support, Codex CLI, OMP with extension
-  context timers and runtime-mode support, and/or Hermes Agent with plugin hooks
-  (tested with OMP 18.12.6 and Hermes Agent 0.20.6)
+  context timers and runtime-mode support, Hermes Agent with plugin hooks, and/or
+  opencode 2.x with `cli.json` TUI plugin support (tested with OMP 18.12.6,
+  Hermes Agent 0.20.6, and opencode 2.3.2)
 - python3 on PATH
 
 ## Install
@@ -82,7 +106,7 @@ format and uses a 0.5-second socket timeout.
 
 During a GitHub plugin install, Herdr runs the manifest's reviewed build
 command. This plugin uses that lifecycle to detect `claude`, `codex`, `omp`,
-and `hermes` on `PATH` and install every available integration automatically.
+`hermes`, and `opencode` on `PATH` and install every available integration automatically.
 Local `herdr plugin link` intentionally does not run build commands.
 
 The same bulk action remains available for repairs and for agents installed
@@ -94,7 +118,7 @@ Herdr plugin actions do not accept positional arguments. The action therefore
 repairs every detected supported agent. From a source checkout, developers can
 target a subset directly:
 
-    sh scripts/integrations.sh install codex omp claude
+    sh scripts/integrations.sh install codex omp claude opencode
 
 Restart already-running agent sessions after installation. Claude Code requires
 workspace trust for status-line commands, and `disableAllHooks` also disables
@@ -103,9 +127,10 @@ non-default profile.
 
 ## Verify
 
-1. Inside herdr, open Claude Code, Codex, OMP, or Hermes in a pane.
+1. Inside herdr, open Claude Code, Codex, OMP, Hermes, or opencode in a pane.
 2. Run `/rename my-task-name` in Claude Code, Codex, or OMP. Run
-   `/title my-task-name` in Hermes. OMP and Hermes update the herdr name
+   `/title my-task-name` in Hermes. In opencode, run the **Rename session**
+   command (`ctrl+r`). OMP, Hermes, and opencode update the herdr name
    directly; Claude Code and Codex report it on their next callback.
 3. To verify a generated title, start a fresh OMP or Hermes session, send a
    normal prompt, and let the first turn complete.

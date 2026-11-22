@@ -3,7 +3,7 @@
 set -u
 
 usage() {
-  echo "usage: integrations.sh install|status|uninstall [claude|codex|omp|hermes ...]" >&2
+  echo "usage: integrations.sh install|status|uninstall [claude|codex|omp|hermes|opencode ...]" >&2
   exit 2
 }
 
@@ -25,6 +25,7 @@ agent_command() {
     codex) echo codex ;;
     omp) echo omp ;;
     hermes) echo hermes ;;
+    opencode) echo opencode ;;
     *) return 1 ;;
   esac
 }
@@ -43,6 +44,9 @@ integration_script() {
     install:hermes) echo "$plugin_root/scripts/install-hermes.sh" ;;
     status:hermes) echo "$plugin_root/scripts/status-hermes.sh" ;;
     uninstall:hermes) echo "$plugin_root/scripts/uninstall-hermes.sh" ;;
+    install:opencode) echo "$plugin_root/scripts/install-opencode.sh" ;;
+    status:opencode) echo "$plugin_root/scripts/status-opencode.sh" ;;
+    uninstall:opencode) echo "$plugin_root/scripts/uninstall-opencode.sh" ;;
     *) return 1 ;;
   esac
 }
@@ -69,6 +73,10 @@ integration_present() {
       [ -e "$base/plugins/herdr-agent-session-title" ] ||
         [ -L "$base/plugins/herdr-agent-session-title" ]
       ;;
+    opencode)
+      base=${XDG_CONFIG_HOME:-$HOME/.config}/opencode
+      [ -e "$base/herdr-agent-session-title" ]
+      ;;
   esac
 }
 
@@ -90,7 +98,7 @@ if [ "$#" -gt 0 ]; then
     esac
   done
 else
-  for candidate in claude codex omp hermes; do
+  for candidate in claude codex omp hermes opencode; do
     if available "$candidate"; then
       selected="$selected $candidate"
     elif [ "$action" != install ] && integration_present "$candidate"; then
@@ -112,7 +120,8 @@ for target in $selected; do
     result=1
     continue
   }
-  if ! available "$target" && [ "$target" != claude ] && [ "$target" != codex ]; then
+  if ! available "$target" && [ "$target" != claude ] && [ "$target" != codex ] &&
+     { [ "$target" != opencode ] || [ "$action" = install ]; }; then
     echo "$target: agent command is unavailable; cannot $action integration" >&2
     result=1
     continue
